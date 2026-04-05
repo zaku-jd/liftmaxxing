@@ -1,0 +1,347 @@
+{
+  "_comment": "Edit this file to change your workout plan. Reload the app after saving.",
+  "_equipment": "eq values: 'para' = paralettes, 'db' = dumbbell, 'bw' = bodyweight",
+  "_reps": "For timed holds (e.g. L-sit), reps = seconds",
+
+  "days": [
+    {
+      "id": 0,
+      "name": "Pull + Legs",
+      "color": "#E8162A",
+      "sections": [
+        {
+          "label": "Back",
+          "exercises": [
+            {
+              "id": "aus_row",
+              "name": "Australian Row",
+              "eq": "para",
+              "sets": 3,
+              "kg": 0,
+              "reps": [8, 12],
+              "note": "Lie under paralettes, pull chest to bar. Feet flat. Full scapular retraction.",
+              "why": "Loads ~30–42 kg bodyweight vs 12.5 kg DB. Your best back exercise."
+            },
+            {
+              "id": "row_chest",
+              "name": "Chest-Supported DB Row",
+              "eq": "db",
+              "sets": 3,
+              "kg": 10,
+              "reps": [10, 12],
+              "note": "3s eccentric. Chest on bench — isolates mid-back."
+            },
+            {
+              "id": "pullover",
+              "name": "DB Pullover",
+              "eq": "db",
+              "sets": 2,
+              "kg": 10,
+              "reps": [10, 12],
+              "note": "Head fully on bench, neck relaxed. Deep lat stretch at top."
+            },
+            {
+              "id": "rev_fly",
+              "name": "Reverse DB Fly",
+              "eq": "db",
+              "sets": 2,
+              "kg": 5,
+              "reps": [12, 15],
+              "note": "2s hold at top, strict. Rear delts are small — 5 kg is correct."
+            }
+          ]
+        },
+        {
+          "label": "Biceps",
+          "exercises": [
+            {
+              "id": "hammer_curl",
+              "name": "Hammer Curls",
+              "eq": "db",
+              "sets": 2,
+              "kg": 10,
+              "reps": [10, 14],
+              "note": "Neutral grip, controlled. Brachialis focus."
+            },
+            {
+              "id": "conc_curl",
+              "name": "Concentration Curl",
+              "eq": "db",
+              "sets": 2,
+              "kg": 10,
+              "reps": [10, 12],
+              "note": "Elbow on inner thigh, pause at full stretch at bottom."
+            }
+          ]
+        },
+        {
+          "label": "Legs",
+          "exercises": [
+            {
+              "id": "rdl",
+              "name": "DB Romanian Deadlift",
+              "eq": "db",
+              "sets": 3,
+              "kg": 10,
+              "reps": [10, 12],
+              "note": "Hinge at hips, soft knees. Feel hamstring stretch, not lower back."
+            },
+            {
+              "id": "bulgarian",
+              "name": "Bulgarian Split Squat",
+              "eq": "db",
+              "sets": 3,
+              "kg": 10,
+              "reps": [8, 12],
+              "note": "DB in each hand, rear foot on bench. Deep lunge, full depth.",
+              "why": "Better than goblet squat — unilateral, deeper stretch, more hypertrophy stimulus."
+            },
+            {
+              "id": "calf_raise",
+              "name": "Calf Raise",
+              "eq": "db",
+              "sets": 2,
+              "kg": 10,
+              "reps": [15, 20],
+              "note": "One DB in hand, other hand on paralette for balance. Full stretch at bottom, pause at top."
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": 1,
+      "name": "Push",
+      "color": "#F11A7B",
+      "sections": [
+        {
+          "label": "Chest + Triceps",
+          "exercises": [
+            {
+              "id": "dips_chest",
+              "name": "Dips (chest focus)",
+              "eq": "para",
+              "sets": 3,
+              "kg": 0,
+              "reps": [6, 12],
+              "note": "Lean forward ~20°, elbows slightly flared. Lower until upper arm parallel.",
+              "why": "Replaces floor press + skull crushers. Hits lower chest, anterior delt, all 3 tricep heads."
+            },
+            {
+              "id": "elev_push",
+              "name": "Elevated Push-ups (paralettes)",
+              "eq": "para",
+              "sets": 3,
+              "kg": 0,
+              "reps": [10, 20],
+              "note": "Hands on paralettes. Lean forward for chest, upright for triceps. Deeper ROM than floor."
+            }
+          ]
+        },
+        {
+          "label": "Shoulders",
+          "exercises": [
+            {
+              "id": "ohp",
+              "name": "Overhead DB Press",
+              "eq": "db",
+              "sets": 3,
+              "kg": 10,
+              "reps": [8, 11],
+              "note": "Seated or standing. Full lockout at top, core braced."
+            },
+            {
+              "id": "lat_raise",
+              "name": "Lateral Raises",
+              "eq": "db",
+              "sets": 3,
+              "kg": 10,
+              "reps": [12, 15],
+              "note": "Slight forward lean. Pinky slightly higher at top. Last set near failure."
+            }
+          ]
+        },
+        {
+          "label": "Triceps isolation",
+          "exercises": [
+            {
+              "id": "tricep_ext",
+              "name": "Standing DB Tricep Extension",
+              "eq": "db",
+              "sets": 2,
+              "kg": 10,
+              "reps": [10, 13],
+              "note": "Both hands on one DB overhead. Full stretch — long head emphasis."
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": 2,
+      "name": "Arms + Chest",
+      "color": "#c8a46a",
+      "sections": [
+        {
+          "label": "Triceps + Chest first",
+          "exercises": [
+            {
+              "id": "dips_tri",
+              "name": "Dips (tricep focus)",
+              "eq": "para",
+              "sets": 3,
+              "kg": 0,
+              "reps": [8, 15],
+              "note": "Stay upright, elbows close. Full lockout at top. Tricep emphasis.",
+              "why": "Chest/triceps first while fresh — biceps after. Better output on both."
+            },
+            {
+              "id": "decline_pu",
+              "name": "Decline Push-ups (feet on paralettes)",
+              "eq": "para",
+              "sets": 3,
+              "kg": 0,
+              "reps": [10, 20],
+              "note": "Feet elevated on paralettes. Upper chest angle your other exercises don't cover."
+            },
+            {
+              "id": "chest_fly",
+              "name": "Chest Fly",
+              "eq": "db",
+              "sets": 2,
+              "kg": 10,
+              "reps": [12, 14],
+              "note": "On floor or bench. Controlled stretch at bottom. Isolation finisher."
+            }
+          ]
+        },
+        {
+          "label": "Biceps",
+          "exercises": [
+            {
+              "id": "heavy_curl",
+              "name": "Heavy DB Curls",
+              "eq": "db",
+              "sets": 3,
+              "kg": 12.5,
+              "reps": [6, 8],
+              "note": "Strict — no swing. Strength stimulus. Your hardest curl set of the week."
+            },
+            {
+              "id": "ecc_curl",
+              "name": "Slow Eccentric Curls",
+              "eq": "db",
+              "sets": 2,
+              "kg": 10,
+              "reps": [8, 10],
+              "note": "4s negative. Intentionally lighter than above — different hypertrophy stimulus."
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": 3,
+      "name": "Back + Shoulders",
+      "color": "#4fd9a4",
+      "sections": [
+        {
+          "label": "Back",
+          "exercises": [
+            {
+              "id": "bow_row",
+              "name": "Bent-Over DB Row (one arm)",
+              "eq": "db",
+              "sets": 3,
+              "kg": 12.5,
+              "reps": [8, 10],
+              "note": "2s squeeze at top. Hits lower lats differently to Australian Row."
+            },
+            {
+              "id": "pullover2",
+              "name": "DB Pullover",
+              "eq": "db",
+              "sets": 2,
+              "kg": 10,
+              "reps": [10, 12],
+              "note": "Slow, deep. Second lat stretch session of the week."
+            }
+          ]
+        },
+        {
+          "label": "Shoulders",
+          "exercises": [
+            {
+              "id": "lat_raise2",
+              "name": "Lateral Raises",
+              "eq": "db",
+              "sets": 2,
+              "kg": 10,
+              "reps": [15, 18],
+              "note": "Pump, not failure. Second lateral delt session."
+            },
+            {
+              "id": "rev_fly2",
+              "name": "Reverse DB Fly",
+              "eq": "db",
+              "sets": 2,
+              "kg": 5,
+              "reps": [12, 15],
+              "note": "Rear delt + rotator cuff health. Keep weight light and strict."
+            },
+            {
+              "id": "front_raise",
+              "name": "Front Raises",
+              "eq": "db",
+              "sets": 2,
+              "kg": 7.5,
+              "reps": [10, 14],
+              "note": "Controlled, no swing. Raise to shoulder height only. Anterior delt isolation."
+            }
+          ]
+        },
+        {
+          "label": "Core",
+          "exercises": [
+            {
+              "id": "l_sit",
+              "name": "L-Sit Hold",
+              "eq": "para",
+              "sets": 3,
+              "kg": 0,
+              "reps": [10, 30],
+              "note": "Tuck knees first, extend legs when you can hold 20s tuck. Reps = seconds held.",
+              "why": "Only direct core work in the plan. Tuck → L-sit → V-sit is a year+ progression."
+            }
+          ]
+        },
+        {
+          "label": "Forearms",
+          "exercises": [
+            {
+              "id": "wrist_curl",
+              "name": "Wrist Curl (palm up)",
+              "eq": "db",
+              "sets": 2,
+              "kg": 10,
+              "reps": [12, 15],
+              "note": "Forearm on thigh. Wrist movement only — forearm flexors."
+            },
+            {
+              "id": "rev_wrist",
+              "name": "Reverse Wrist Curl (palm down)",
+              "eq": "db",
+              "sets": 2,
+              "kg": 5,
+              "reps": [10, 12],
+              "note": "Extensors much weaker — never match wrist curl weight. Elbow strain risk."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0d0d0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Workout">
+<title>Workout Tracker</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="style.css">
+</style>
+</head>
+<body>
+
+<div id="page-plan" class="page active">
+  <div class="page-header">
+    <div class="page-title">Workout</div>
+    <div class="page-sub" id="today-label">Loading...</div>
+  </div>
+  <div class="page-inner">
+  <div id="install-banner" class="install-banner hidden">
+    <p>Add to home screen — works offline, no browser bar.</p>
+    <button class="install-btn" id="install-btn">Install</button>
+  </div>
+  <div class="day-tabs">
+    <button class="day-tab active" data-day="0">Day 1 · Pull + Legs</button>
+    <button class="day-tab" data-day="1">Day 2 · Push</button>
+    <button class="day-tab" data-day="2">Day 3 · Arms + Chest</button>
+    <button class="day-tab" data-day="3">Day 4 · Back + Shoulders</button>
+  </div>
+  <div id="day-panels"></div>
+  </div>
+</div>
+
+<div id="page-progress" class="page">
+  <div class="page-header">
+    <div class="page-title">Progress</div>
+    <div class="page-sub">Per-set kg and reps over time</div>
+  </div>
+  <div class="page-inner">
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-val" id="stat-sessions">0</div><div class="stat-label">Sets logged</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-exercises">0</div><div class="stat-label">Exercises</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-days">0</div><div class="stat-label">Days active</div></div>
+  </div>
+  <button class="action-btn" id="export-btn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Export backup (JSON)
+  </button>
+  <div class="prog-list" id="prog-list"></div>
+  </div>
+</div>
+
+<div id="page-settings" class="page">
+  <div class="page-header">
+    <div class="page-title">Settings</div>
+    <div class="page-sub">GitHub sync · data · about</div>
+  </div>
+  <div class="page-inner" style="padding: 16px 20px;">
+
+    <div class="settings-section">
+      <div class="settings-heading">GitHub sync</div>
+      <p class="settings-desc">Your log is saved automatically to a <code>log.json</code> file in any GitHub repo you choose. Never lose data, readable from any device.</p>
+      <div class="settings-row">
+        <label class="settings-label">Status</label>
+        <span id="gh-status" style="font-size:13px;color:var(--muted)">Not connected</span>
+      </div>
+      <div class="settings-field">
+        <label class="settings-label">Personal access token</label>
+        <input class="settings-input" id="gh-token" type="password" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off" spellcheck="false">
+        <div class="settings-hint">GitHub → Settings → Developer settings → Personal access tokens → Fine-grained → Contents: read &amp; write on your repo</div>
+      </div>
+      <div class="settings-field">
+        <label class="settings-label">GitHub username</label>
+        <input class="settings-input" id="gh-owner" type="text" placeholder="yourusername" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="settings-field">
+        <label class="settings-label">Repo name</label>
+        <input class="settings-input" id="gh-repo" type="text" placeholder="workout" autocomplete="off" spellcheck="false">
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="settings-btn primary" onclick="saveGHSettings()">Save &amp; connect</button>
+        <button class="settings-btn" onclick="ghPull().then(()=>{ renderPlan(); renderProgress(); })">Pull from GitHub</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-heading">Data</div>
+      <button class="settings-btn" onclick="exportJSON()">Export backup (JSON)</button>
+      <button class="settings-btn danger" onclick="confirmClear()">Clear all local data</button>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-heading">Workout plan</div>
+      <p class="settings-desc">Edit <code>workout.json</code> in your repo to change exercises, sets, weights. The app reloads it on startup.</p>
+    </div>
+
+  </div>
+</div>
+
+<div id="page-body" class="page">
+  <div class="page-header">
+    <div class="page-title">Body</div>
+    <div class="page-sub" id="body-sub">Track your weight over time</div>
+  </div>
+  <div class="page-inner" style="padding: 16px 20px;">
+
+    <div class="body-stats-grid">
+      <div class="stat-card"><div class="stat-val" id="bstat-start">—</div><div class="stat-label">Starting</div></div>
+      <div class="stat-card"><div class="stat-val" id="bstat-current">—</div><div class="stat-label">Current</div></div>
+      <div class="stat-card"><div class="stat-val" id="bstat-change">—</div><div class="stat-label">Change</div></div>
+      <div class="stat-card"><div class="stat-val" id="bstat-trend">—</div><div class="stat-label">7-day trend</div></div>
+    </div>
+
+    <div class="body-log-card">
+      <div class="body-log-label" id="body-log-label">Log today's weight</div>
+      <div class="body-stepper-row">
+        <button class="stepper-btn sm" onclick="stepWeight(-1)">−</button>
+        <span class="body-weight-val" id="body-weight-val">75.0</span>
+        <button class="stepper-btn sm" onclick="stepWeight(1)">+</button>
+        <span class="sv-unit">kg</span>
+      </div>
+      <button class="body-log-btn" id="body-log-btn" onclick="logWeight()">Log weight</button>
+    </div>
+
+    <div class="body-graph-wrap">
+      <canvas id="body-chart"></canvas>
+    </div>
+
+    <div id="body-history" class="body-history"></div>
+
+  </div>
+</div>
+
+<nav>
+  <button class="nav-btn active" data-page="plan">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Plan
+  </button>
+  <button class="nav-btn" data-page="progress">
+    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Progress
+  </button>
+  <button class="nav-btn" data-page="body">
+    <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+    Body
+  </button>
+  <button class="nav-btn" data-page="settings">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    Settings
+  </button>
+</nav>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// ─── PLAN ─────────────────────────────────────────────────────────────────────
+const DAYS = [
+  { id:0, name:'Pull + Legs', color:'#4f9cf7', sections:[
+    { label:'Back', exercises:[
+      { id:'aus_row',     name:'Australian Row',              eq:'para', sets:3, kg:0,    reps:[8,12],  note:'Lie under paralettes, pull chest to bar. Feet flat. Full scapular retraction.', why:'Loads ~30–42 kg bodyweight vs 12.5 kg DB. Your best back exercise.' },
+      { id:'row_chest',   name:'Chest-Supported DB Row',      eq:'db',   sets:3, kg:10,   reps:[10,12], note:'3s eccentric. Chest on bench — isolates mid-back.' },
+      { id:'pullover',    name:'DB Pullover',                 eq:'db',   sets:2, kg:10,   reps:[10,12], note:'Head fully on bench, neck relaxed. Deep lat stretch at top.' },
+      { id:'rev_fly',     name:'Reverse DB Fly',              eq:'db',   sets:2, kg:5,    reps:[12,15], note:'2s hold at top, strict. Rear delts are small — 5 kg is correct.' },
+    ]},
+    { label:'Biceps', exercises:[
+      { id:'hammer_curl', name:'Hammer Curls',                eq:'db',   sets:2, kg:10,   reps:[10,14], note:'Neutral grip, controlled. Brachialis focus.' },
+      { id:'conc_curl',   name:'Concentration Curl',          eq:'db',   sets:2, kg:10,   reps:[10,12], note:'Elbow on inner thigh, pause at full stretch at bottom.' },
+    ]},
+    { label:'Legs', exercises:[
+      { id:'rdl',         name:'DB Romanian Deadlift',        eq:'db',   sets:3, kg:10,   reps:[10,12], note:'Hinge at hips, soft knees. Feel hamstring stretch, not lower back.' },
+      { id:'bulgarian',   name:'Bulgarian Split Squat',       eq:'db',   sets:3, kg:10,   reps:[8,12],  note:'DB in each hand, rear foot on bench. Deep lunge, full depth. Add load as bodyweight gets easy.', why:'Better than goblet squat — unilateral, deeper stretch, more hypertrophy stimulus.' },
+      { id:'calf_raise',  name:'Calf Raise',                  eq:'db',   sets:2, kg:10,   reps:[15,20], note:'One DB in hand, other hand on paralette for balance. Stand on edge, full stretch at bottom, pause at top.' },
+    ]},
+  ]},
+  { id:1, name:'Push', color:'#f7714f', sections:[
+    { label:'Chest + Triceps', exercises:[
+      { id:'dips_chest',  name:'Dips (chest focus)',          eq:'para', sets:3, kg:0,    reps:[6,12],  note:'Lean forward ~20°, elbows slightly flared. Lower until upper arm parallel.', why:'Replaces floor press + skull crushers. Hits lower chest, anterior delt, all 3 tricep heads.' },
+      { id:'elev_push',   name:'Elevated Push-ups (paralettes)', eq:'para', sets:3, kg:0, reps:[10,20], note:'Hands on paralettes. Lean forward for chest, upright for triceps. Deeper ROM than floor.' },
+    ]},
+    { label:'Shoulders', exercises:[
+      { id:'ohp',         name:'Overhead DB Press',           eq:'db',   sets:3, kg:10,   reps:[8,11],  note:'Seated or standing. Full lockout at top, core braced.' },
+      { id:'lat_raise',   name:'Lateral Raises',              eq:'db',   sets:3, kg:10,   reps:[12,15], note:'Slight forward lean. Pinky slightly higher at top. Last set near failure.' },
+    ]},
+    { label:'Triceps isolation', exercises:[
+      { id:'tricep_ext',  name:'Standing DB Tricep Extension',eq:'db',   sets:2, kg:10,   reps:[10,13], note:'Both hands on one DB overhead. Full stretch — long head emphasis.' },
+    ]},
+  ]},
+  { id:2, name:'Arms + Chest', color:'#f7c84f', sections:[
+    { label:'Triceps + Chest first', exercises:[
+      { id:'dips_tri',    name:'Dips (tricep focus)',         eq:'para', sets:3, kg:0,    reps:[8,15],  note:'Stay upright, elbows close. Full lockout at top. Tricep emphasis.', why:'Chest/triceps first while fresh — biceps after. Better output on both.' },
+      { id:'decline_pu',  name:'Decline Push-ups (feet on paralettes)', eq:'para', sets:3, kg:0, reps:[10,20], note:'Feet elevated on paralettes. Upper chest angle your other exercises don\'t cover.' },
+      { id:'chest_fly',   name:'Chest Fly',                  eq:'db',   sets:2, kg:10,   reps:[12,14], note:'On floor or bench. Controlled stretch at bottom. Isolation finisher.' },
+    ]},
+    { label:'Biceps', exercises:[
+      { id:'heavy_curl',  name:'Heavy DB Curls',              eq:'db',   sets:3, kg:12.5, reps:[6,8],   note:'Strict — no swing. Strength stimulus. Your hardest curl set of the week.' },
+      { id:'ecc_curl',    name:'Slow Eccentric Curls',        eq:'db',   sets:2, kg:10,   reps:[8,10],  note:'4s negative. Intentionally lighter than above — different hypertrophy stimulus.' },
+    ]},
+  ]},
+  { id:3, name:'Back + Shoulders', color:'#4fd9a4', sections:[
+    { label:'Back', exercises:[
+      { id:'bow_row',     name:'Bent-Over DB Row (one arm)',  eq:'db',   sets:3, kg:12.5, reps:[8,10],  note:'2s squeeze at top. Hits lower lats differently to Australian Row.' },
+      { id:'pullover2',   name:'DB Pullover',                 eq:'db',   sets:2, kg:10,   reps:[10,12], note:'Slow, deep. Second lat stretch session of the week.' },
+    ]},
+    { label:'Shoulders', exercises:[
+      { id:'lat_raise2',  name:'Lateral Raises',              eq:'db',   sets:2, kg:10,   reps:[15,18], note:'Pump, not failure. Second lateral delt session.' },
+      { id:'rev_fly2',    name:'Reverse DB Fly',              eq:'db',   sets:2, kg:5,    reps:[12,15], note:'Rear delt + rotator cuff health. Keep weight light and strict.' },
+      { id:'front_raise', name:'Front Raises',                eq:'db',   sets:2, kg:7.5,  reps:[10,14], note:'Controlled, no swing. Raise to shoulder height only — no higher. Anterior delt isolation.' },
+    ]},
+    { label:'Core', exercises:[
+      { id:'l_sit',       name:'L-Sit Hold',                  eq:'para', sets:3, kg:0,    reps:[10,30], note:'Tuck knees to chest first, then extend legs when you can hold 20s tuck. Builds serratus and full anterior core.', why:'Only direct core work in the plan. Paralettes are ideal — full hip clearance. Tuck → L-sit → V-sit is a year+ progression.' },
+    ]},
+    { label:'Forearms', exercises:[
+      { id:'wrist_curl',  name:'Wrist Curl (palm up)',        eq:'db',   sets:2, kg:10,   reps:[12,15], note:'Forearm on thigh. Wrist movement only — forearm flexors.' },
+      { id:'rev_wrist',   name:'Reverse Wrist Curl (palm down)', eq:'db', sets:2, kg:5,   reps:[10,12], note:'Extensors much weaker — never match wrist curl weight. Elbow strain risk.' },
+    ]},
+  ]},
+];
+
+// ─── STORAGE ──────────────────────────────────────────────────────────────────
+// Log format: { [exId]: [ { date, sets: [ {kg, reps} ] } ] }
+// localStorage is always the live working copy.
+// GitHub is synced after every write (debounced 3s) and read on startup.
+
+const LKEY = 'wl_v3';
+const TKEY = 'wt_v1';
+const GHKEY = 'gh_config'; // { token, owner, repo }
+
+const loadLog  = () => { try { return JSON.parse(localStorage.getItem(LKEY))||{}; } catch { return {}; } };
+const saveLog  = l  => { localStorage.setItem(LKEY, JSON.stringify(l)); ghSyncDebounced(); };
+const loadTgts = () => { try { return JSON.parse(localStorage.getItem(TKEY))||{}; } catch { return {}; } };
+const saveTgts = t  => { localStorage.setItem(TKEY, JSON.stringify(t)); ghSyncDebounced(); };
+const loadGHConfig = () => { try { return JSON.parse(localStorage.getItem(GHKEY))||null; } catch { return null; } };
+const saveGHConfig = c => localStorage.setItem(GHKEY, JSON.stringify(c));
+
+// ─── GITHUB SYNC ──────────────────────────────────────────────────────────────
+let ghSyncTimer = null;
+let ghSyncStatus = 'idle'; // idle | syncing | ok | error
+
+function ghSyncDebounced() {
+  clearTimeout(ghSyncTimer);
+  ghSyncTimer = setTimeout(ghPush, 3000);
+}
+
+function ghApiBase() {
+  const c = loadGHConfig();
+  if (!c?.token || !c?.owner || !c?.repo) return null;
+  return { base: `https://api.github.com/repos/${c.owner}/${c.repo}`, token: c.token };
+}
+
+async function ghPush() {
+  const api = ghApiBase();
+  if (!api) return;
+  setGHStatus('syncing');
+  try {
+    const payload = {
+      log: loadLog(),
+      targets: loadTgts(),
+      weight: loadWeightLog(),
+      updated: new Date().toISOString()
+    };
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+    // Get current SHA (needed to update existing file)
+    let sha = null;
+    const getRes = await fetch(`${api.base}/contents/log.json`, {
+      headers: { Authorization: `Bearer ${api.token}`, Accept: 'application/vnd.github+json' }
+    });
+    if (getRes.ok) { const d = await getRes.json(); sha = d.sha; }
+
+    const body = { message: `log update ${new Date().toISOString().split('T')[0]}`, content };
+    if (sha) body.sha = sha;
+    const putRes = await fetch(`${api.base}/contents/log.json`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${api.token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!putRes.ok) throw new Error(putRes.status);
+    setGHStatus('ok');
+  } catch(e) {
+    console.warn('GitHub sync failed:', e);
+    setGHStatus('error');
+  }
+}
+
+async function ghPull() {
+  const api = ghApiBase();
+  if (!api) return false;
+  setGHStatus('syncing');
+  try {
+    const res = await fetch(`${api.base}/contents/log.json`, {
+      headers: { Authorization: `Bearer ${api.token}`, Accept: 'application/vnd.github+json' }
+    });
+    if (!res.ok) { setGHStatus('ok'); return false; } // file doesn't exist yet, that's fine
+    const d = await res.json();
+    const payload = JSON.parse(decodeURIComponent(escape(atob(d.content.replace(/\n/g,'')))));
+    if (payload.log)     localStorage.setItem(LKEY, JSON.stringify(payload.log));
+    if (payload.targets) localStorage.setItem(TKEY, JSON.stringify(payload.targets));
+    if (payload.weight)  localStorage.setItem(WKEY, JSON.stringify(payload.weight));
+    setGHStatus('ok');
+    return true;
+  } catch(e) {
+    console.warn('GitHub pull failed:', e);
+    setGHStatus('error');
+    return false;
+  }
+}
+
+function setGHStatus(s) {
+  ghSyncStatus = s;
+  const el = document.getElementById('gh-status');
+  if (!el) return;
+  const states = {
+    idle:    { text: 'Not connected', color: 'var(--muted)' },
+    syncing: { text: 'Syncing…',      color: 'var(--warn)' },
+    ok:      { text: 'Synced ✓',      color: 'var(--d4)' },
+    error:   { text: 'Sync failed',   color: 'var(--d1)' },
+  };
+  const st = states[s] || states.idle;
+  el.textContent = st.text;
+  el.style.color = st.color;
+}
+
+function getTarget(ex) {
+  const ov = loadTgts()[ex.id];
+  return ov ? { ...ex, kg: ov.kg ?? ex.kg, reps: ov.reps ?? ex.reps, sets: ov.sets ?? ex.sets } : ex;
+}
+
+function saveTarget(exId, kg, repsMin, repsMax, sets) {
+  const t = loadTgts();
+  t[exId] = { kg, reps:[repsMin,repsMax], sets };
+  saveTgts(t);
+}
+
+// Add a single set to today's session for this exercise
+function logSet(exId, kg, reps) {
+  const log = loadLog();
+  if (!log[exId]) log[exId] = [];
+  const today = new Date().toISOString().split('T')[0];
+  let session = log[exId].find(s => s.date === today);
+  if (!session) { session = { date: today, sets: [] }; log[exId].push(session); }
+  session.sets.push({ kg, reps });
+  saveLog(log);
+}
+
+// Remove the most recently logged set for this exercise today (for undo)
+function unlogSet(exId) {
+  const log = loadLog();
+  if (!log[exId]) return;
+  const today = new Date().toISOString().split('T')[0];
+  const session = log[exId].find(s => s.date === today);
+  if (session && session.sets.length) {
+    session.sets.pop();
+    if (session.sets.length === 0) log[exId] = log[exId].filter(s => s.date !== today);
+    saveLog(log);
+  }
+}
+
+function getLastSession(exId) {
+  const e = loadLog()[exId];
+  return e && e.length ? e[e.length-1] : null;
+}
+
+function getAllSessions(exId) { return loadLog()[exId] || []; }
+
+function shouldWarn(ex) {
+  const sessions = getAllSessions(ex.id);
+  if (sessions.length < 2) return false;
+  const t = getTarget(ex);
+  return sessions.slice(-3).every(s => s.sets.every(set => set.reps >= t.reps[1]));
+}
+
+const getEx = id => { for (const d of DAYS) for (const s of d.sections) for (const e of s.exercises) if (e.id===id) return e; return null; };
+const getColor = id => { for (const d of DAYS) for (const s of d.sections) if (s.exercises.find(e=>e.id===id)) return d.color; return '#4fd9a4'; };
+const EQ = {
+  para: '<span class="tag tag-para">paralettes</span>',
+  db:   '<span class="tag tag-db">dumbbell</span>',
+  bw:   '<span class="tag tag-bw">bodyweight</span>',
+};
+
+// ─── PER-SET STATE ────────────────────────────────────────────────────────────
+// perSetVals[exId][setIdx] = { kg, reps }
+const perSetVals = {};
+
+function initSetVals(exId) {
+  if (perSetVals[exId]) return;
+  const ex   = getEx(exId);
+  const t    = getTarget(ex);
+  const last = getLastSession(exId);
+  const lastSet = last && last.sets.length ? last.sets[last.sets.length-1] : null;
+  const defaultKg   = lastSet ? lastSet.kg   : t.kg;
+  const defaultReps = lastSet ? lastSet.reps : t.reps[0];
+  perSetVals[exId] = {};
+  for (let i = 0; i < t.sets; i++) {
+    // Pre-fill from last session's matching set index if available
+    const prevSet = last && last.sets[i];
+    perSetVals[exId][i] = {
+      kg:   prevSet ? prevSet.kg   : defaultKg,
+      reps: prevSet ? prevSet.reps : defaultReps,
+    };
+  }
+}
+
+function stepSet(exId, setIdx, field, delta) {
+  initSetVals(exId);
+  const inc = field === 'kg' ? 0.5 : 1;
+  const min = field === 'kg' ? 0 : 1;
+  const cur = perSetVals[exId][setIdx][field];
+  const next = Math.max(min, Math.round((cur + delta * inc) * 10) / 10);
+  perSetVals[exId][setIdx][field] = next;
+  const el = document.getElementById(`sv-${field}-${exId}-${setIdx}`);
+  if (el) el.textContent = next;
+}
+
+// ─── RENDER PLAN ─────────────────────────────────────────────────────────────
+function renderPlan() {
+  const wrap = document.getElementById('day-panels');
+  wrap.innerHTML = '';
+  DAYS.forEach(day => {
+    const panel = document.createElement('div');
+    panel.className = 'day-panel' + (day.id===0?' active':'');
+    panel.dataset.day = day.id;
+    day.sections.forEach(sec => {
+      const lbl = document.createElement('div');
+      lbl.className = 'section-label'; lbl.textContent = sec.label;
+      panel.appendChild(lbl);
+      sec.exercises.forEach(ex => panel.appendChild(buildCard(ex)));
+    });
+    wrap.appendChild(panel);
+  });
+}
+
+function buildCard(ex) {
+  const t    = getTarget(ex);
+  const warn = shouldWarn(ex);
+  const bw   = t.kg === 0;
+  const last = getLastSession(ex.id);
+  const lastSet = last && last.sets.length ? last.sets[last.sets.length-1] : null;
+  const lastStr = lastSet ? (bw ? `Last: ${lastSet.reps} reps` : `Last: ${lastSet.kg} kg × ${lastSet.reps}`) : 'No log yet';
+  const tgtStr  = bw
+    ? `${t.sets} sets · ${t.reps[0]}–${t.reps[1]} reps`
+    : `${t.sets} sets · ${t.reps[0]}–${t.reps[1]} reps · ${t.kg} kg target`;
+
+  // Init per-set values
+  initSetVals(ex.id);
+
+  const setsHtml = Array.from({length:t.sets}, (_, i) => {
+    const sv = perSetVals[ex.id][i];
+    const kgPart = bw ? '' : `
+      <button class="stepper-btn sm" onclick="stepSet('${ex.id}',${i},'kg',-1)">−</button>
+      <span class="sv-val" id="sv-kg-${ex.id}-${i}">${sv.kg}</span>
+      <button class="stepper-btn sm" onclick="stepSet('${ex.id}',${i},'kg',1)">+</button>
+      <span class="sv-unit">kg</span>
+      <span class="sv-sep">·</span>`;
+    return `
+    <div class="per-set-row" id="psr-${ex.id}-${i}">
+      <span class="set-num">Set ${i+1}</span>
+      <div class="set-controls">
+        ${kgPart}
+        <button class="stepper-btn sm" onclick="stepSet('${ex.id}',${i},'reps',-1)">−</button>
+        <span class="sv-val" id="sv-reps-${ex.id}-${i}">${sv.reps}</span>
+        <button class="stepper-btn sm" onclick="stepSet('${ex.id}',${i},'reps',1)">+</button>
+        <span class="sv-unit">reps</span>
+      </div>
+      <button class="set-done-btn" id="sc-${ex.id}-${i}" onclick="markSet('${ex.id}',${i},this)">✓</button>
+    </div>`;
+  }).join('');
+
+  const card = document.createElement('div');
+  card.className = 'ex-card' + (warn?' warn-reps':'');
+  card.dataset.exId = ex.id;
+
+  card.innerHTML = `
+    <div class="ex-header" onclick="toggleCard('${ex.id}')">
+      <div class="ex-left">
+        <div class="ex-name">${ex.name} ${EQ[ex.eq]||''}</div>
+        <div class="ex-meta" id="meta-${ex.id}">${lastStr}</div>
+      </div>
+      <div class="ex-right">
+        <button class="done-check" id="chk-${ex.id}" onclick="event.stopPropagation();toggleDone('${ex.id}')">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+        <svg class="expand-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+    <div class="log-panel" id="lp-${ex.id}">
+      <div class="target-info">
+        <strong>${tgtStr}</strong><br>${ex.note}
+        ${ex.why ? `<div class="why-note">↳ ${ex.why}</div>` : ''}
+      </div>
+
+      <div class="per-sets-wrap">${setsHtml}</div>
+
+      ${warn ? '<div class="warn-badge">⚑ Reps at ceiling consistently — consider increasing weight</div>' : ''}
+
+      <div class="target-editor">
+        <button class="target-editor-toggle" onclick="toggleTargetEditor('${ex.id}')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Edit targets
+        </button>
+        <div class="target-editor-fields" id="te-${ex.id}">
+          ${bw ? '' : `<div class="te-row"><span class="te-label">Target kg</span><input class="te-input" id="te-kg-${ex.id}" type="number" step="0.5" value="${t.kg}"></div>`}
+          <div class="te-row"><span class="te-label">Min reps</span><input class="te-input" id="te-rmin-${ex.id}" type="number" step="1" value="${t.reps[0]}"></div>
+          <div class="te-row"><span class="te-label">Max reps</span><input class="te-input" id="te-rmax-${ex.id}" type="number" step="1" value="${t.reps[1]}"></div>
+          <div class="te-row"><span class="te-label">Sets</span><input class="te-input" id="te-sets-${ex.id}" type="number" step="1" value="${t.sets}"></div>
+          <button class="te-save" onclick="applyTarget('${ex.id}')">Save targets</button>
+        </div>
+      </div>
+
+      <button class="graph-toggle" id="gt-${ex.id}" onclick="toggleGraph('${ex.id}')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Show progress graph
+      </button>
+      <div class="graph-container" id="gc-${ex.id}">
+        <div class="graph-wrap"><canvas id="cv-${ex.id}"></canvas></div>
+      </div>
+    </div>`;
+  return card;
+}
+
+// ─── TARGET EDITOR ────────────────────────────────────────────────────────────
+function toggleTargetEditor(exId) {
+  document.getElementById(`te-${exId}`).classList.toggle('open');
+}
+
+function applyTarget(exId) {
+  const ex = getEx(exId);
+  const bw = getTarget(ex).kg === 0;
+  const kg    = bw ? 0 : parseFloat(document.getElementById(`te-kg-${exId}`)?.value || ex.kg);
+  const rmin  = parseInt(document.getElementById(`te-rmin-${exId}`).value);
+  const rmax  = parseInt(document.getElementById(`te-rmax-${exId}`).value);
+  const sets  = parseInt(document.getElementById(`te-sets-${exId}`).value);
+  saveTarget(exId, kg, rmin, rmax, sets);
+  // Re-render card
+  const card = document.querySelector(`[data-ex-id="${exId}"]`);
+  if (card) {
+    const wasExpanded = card.classList.contains('expanded');
+    const newCard = buildCard({...ex});
+    card.replaceWith(newCard);
+    if (wasExpanded) { newCard.classList.add('expanded'); }
+  }
+}
+
+// ─── CARD / SET INTERACTIONS ──────────────────────────────────────────────────
+function toggleCard(id) {
+  const card = document.querySelector(`[data-ex-id="${id}"]`);
+  const was  = card.classList.contains('expanded');
+  card.closest('.day-panel').querySelectorAll('.ex-card.expanded').forEach(c=>c.classList.remove('expanded'));
+  if (!was) card.classList.add('expanded');
+}
+
+const setsDoneToday = {}; // exId -> Set of indices done
+
+function markSet(exId, idx, btn) {
+  if (!setsDoneToday[exId]) setsDoneToday[exId] = new Set();
+  const row = document.getElementById(`psr-${exId}-${idx}`);
+
+  if (setsDoneToday[exId].has(idx)) {
+    // UNLOCK — remove from done, re-enable steppers, remove from storage
+    setsDoneToday[exId].delete(idx);
+    btn.classList.remove('done-set');
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    if (row) {
+      row.classList.remove('locked');
+      row.querySelectorAll('.stepper-btn').forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+    }
+    unlogSet(exId);
+    // Un-check the exercise header too
+    toggleDone(exId, false);
+    refreshGraphIfVisible(exId);
+    return;
+  }
+
+  // LOCK
+  setsDoneToday[exId].add(idx);
+  btn.classList.add('done-set');
+  btn.disabled = false; // keep enabled so they can tap again to undo
+  if (row) {
+    row.classList.add('locked');
+    row.querySelectorAll('.stepper-btn').forEach(b => { b.disabled = true; b.style.opacity = '0.3'; });
+  }
+
+  initSetVals(exId);
+  const kg   = perSetVals[exId][idx].kg;
+  const reps = perSetVals[exId][idx].reps;
+  logSet(exId, kg, reps);
+
+  const ex = getEx(exId);
+  const meta = document.getElementById(`meta-${exId}`);
+  if (meta) meta.textContent = ex.kg===0 ? `Last: ${reps} reps` : `Last: ${kg} kg × ${reps}`;
+
+  const t = getTarget(ex);
+  if (setsDoneToday[exId].size >= t.sets) toggleDone(exId, true);
+
+  refreshGraphIfVisible(exId);
+}
+
+function toggleDone(id, force=null) {
+  const b = document.getElementById(`chk-${id}`);
+  const c = document.querySelector(`[data-ex-id="${id}"]`);
+  if (!b||!c) return;
+  const on = force !== null ? force : !b.classList.contains('checked');
+  b.classList.toggle('checked', on); c.classList.toggle('done', on);
+}
+
+// ─── CHARTS ───────────────────────────────────────────────────────────────────
+const charts = {};
+
+function makeChart(exId, cvId, height=140) {
+  const sessions = getAllSessions(exId);
+  const cv = document.getElementById(cvId);
+  if (!cv) return;
+  if (charts[cvId]) { charts[cvId].destroy(); delete charts[cvId]; }
+
+  const ctx = cv.getContext('2d');
+
+  if (!sessions.length) {
+    // Fixed: use actual canvas pixel dimensions, don't stretch
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.fillStyle = '#6b6b80';
+    ctx.font = '13px -apple-system,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('No data yet — log a set to start tracking', cv.width/2, cv.height/2);
+    return;
+  }
+
+  // Build per-set data points: one dot per set logged
+  const kgPoints   = []; // {x: label, y: kg}
+  const repPoints  = [];
+  let idx = 0;
+
+  sessions.forEach(session => {
+    const short = (() => { const p=session.date.split('-'); return `${p[2]}/${p[1]}`; })();
+    session.sets.forEach((s, si) => {
+      const label = session.sets.length > 1 ? `${short} S${si+1}` : short;
+      kgPoints.push({ x: label, y: s.kg });
+      repPoints.push({ x: label, y: s.reps });
+      idx++;
+    });
+  });
+
+  const labels = kgPoints.map(p=>p.x);
+  const ex = getEx(exId);
+  const bw = ex && ex.kg === 0;
+  const col = getColor(exId);
+
+  const datasets = bw
+    ? [{ label:'Reps', data: repPoints.map(p=>p.y), borderColor:'#f7c84f', backgroundColor:'rgba(247,200,79,.12)', borderWidth:2, pointBackgroundColor:'#f7c84f', pointRadius:4, fill:true, tension:0.3 }]
+    : [
+        { label:'kg',   data: kgPoints.map(p=>p.y),  borderColor: col,       backgroundColor: col+'18',              borderWidth:2, pointBackgroundColor: col,       pointRadius:4, fill:false, tension:0.3, yAxisID:'y' },
+        { label:'Reps', data: repPoints.map(p=>p.y),  borderColor:'#f7c84f', backgroundColor:'rgba(247,200,79,.12)', borderWidth:1.5, pointBackgroundColor:'#f7c84f', pointRadius:3, fill:false, tension:0.3, yAxisID:'y2', borderDash:[4,3] },
+      ];
+
+  const scales = bw
+    ? { x:{ticks:{color:'#6b6b80',font:{size:9},maxRotation:45},grid:{color:'rgba(255,255,255,0.04)'}}, y:{ticks:{color:'#6b6b80',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}} }
+    : {
+        x:  { ticks:{color:'#6b6b80',font:{size:9},maxRotation:45}, grid:{color:'rgba(255,255,255,0.04)'} },
+        y:  { type:'linear', position:'left',  ticks:{color: col,     font:{size:9}}, grid:{color:'rgba(255,255,255,0.04)'}, title:{display:true,text:'kg', color:col,    font:{size:9}} },
+        y2: { type:'linear', position:'right', ticks:{color:'#f7c84f',font:{size:9}}, grid:{drawOnChartArea:false},          title:{display:true,text:'reps',color:'#f7c84f',font:{size:9}} },
+      };
+
+  charts[cvId] = new Chart(cv, {
+    type:'line',
+    data:{ labels, datasets },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:!bw, labels:{ color:'#6b6b80', font:{size:10}, boxWidth:12, padding:10 } }, tooltip:{ callbacks:{ label: c => `${c.dataset.label}: ${c.raw}` } } },
+      scales,
+    }
+  });
+}
+
+function toggleGraph(exId) {
+  const gc  = document.getElementById(`gc-${exId}`);
+  const btn = document.getElementById(`gt-${exId}`);
+  const open = gc.classList.toggle('visible');
+  btn.innerHTML = open
+    ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg> Hide graph`
+    : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> Show progress graph`;
+  if (open) setTimeout(()=>makeChart(exId,`cv-${exId}`),30);
+}
+
+function refreshGraphIfVisible(exId) {
+  const gc = document.getElementById(`gc-${exId}`);
+  if (gc && gc.classList.contains('visible')) {
+    setTimeout(()=>makeChart(exId,`cv-${exId}`),30);
+  }
+}
+
+// ─── PROGRESS PAGE ────────────────────────────────────────────────────────────
+function renderProgress() {
+  const log = loadLog();
+  const allSets = Object.values(log).flatMap(s=>s.flatMap(e=>e.sets));
+  const dates   = [...new Set(Object.values(log).flatMap(s=>s.map(e=>e.date)))];
+  const tracked = Object.keys(log).filter(k=>log[k].length);
+  document.getElementById('stat-sessions').textContent  = allSets.length;
+  document.getElementById('stat-exercises').textContent = tracked.length;
+  document.getElementById('stat-days').textContent      = dates.length;
+
+  const list = document.getElementById('prog-list');
+  list.innerHTML = '';
+  if (!tracked.length) { list.innerHTML='<div class="no-data">Log your first session on the Plan tab.<br>Progress graphs will appear here.</div>'; return; }
+
+  DAYS.forEach(day=>day.sections.forEach(sec=>sec.exercises.forEach(ex=>{
+    const sessions = log[ex.id];
+    if (!sessions?.length) return;
+    const last = sessions[sessions.length-1];
+    const lastSet = last.sets[last.sets.length-1];
+    const bw = ex.kg===0;
+    const card = document.createElement('div');
+    card.className = 'prog-ex-card';
+    card.innerHTML = `
+      <div class="prog-ex-header">
+        <div>
+          <div class="prog-ex-name">${ex.name}${shouldWarn(ex)?' ⚑':''}</div>
+          <div class="prog-ex-stats">Last: ${bw?`${lastSet.reps} reps`:`${lastSet.kg} kg × ${lastSet.reps}`} · ${sessions.length} session${sessions.length>1?'s':''}</div>
+        </div>
+      </div>
+      <div class="prog-graph-wrap">
+        <div class="prog-graph-inner"><canvas id="pc-${ex.id}"></canvas></div>
+      </div>`;
+    list.appendChild(card);
+  })));
+
+  // Render all charts after DOM is ready
+  setTimeout(() => {
+    DAYS.forEach(day=>day.sections.forEach(sec=>sec.exercises.forEach(ex=>{
+      if (log[ex.id]?.length) makeChart(ex.id, `pc-${ex.id}`, 170);
+    })));
+  }, 50);
+}
+
+// ─── EXPORT ───────────────────────────────────────────────────────────────────
+document.getElementById('export-btn').addEventListener('click', exportJSON);
+
+// ─── NAV ──────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click',()=>{
+  switchToPage(b.dataset.page);
+}));
+
+document.querySelectorAll('.day-tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.day-tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.day-panel').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  document.querySelector(`.day-panel[data-day="${t.dataset.day}"]`).classList.add('active');
+}));
+
+// ─── WEIGHT TRACKING ─────────────────────────────────────────────────────────
+const WKEY = 'weight_log_v1'; // [ { date: 'YYYY-MM-DD', kg: 75.5 } ]
+
+const loadWeightLog = () => { try { return JSON.parse(localStorage.getItem(WKEY))||[]; } catch { return []; } };
+const saveWeightLog = l => { localStorage.setItem(WKEY, JSON.stringify(l)); ghSyncDebounced(); };
+
+let currentWeightVal = 75.0;
+
+function initBodyPage() {
+  const log = loadWeightLog();
+  const today = new Date().toISOString().split('T')[0];
+  const todayEntry = log.find(e => e.date === today);
+
+  // Seed stepper from last entry
+  if (log.length) currentWeightVal = log[log.length-1].kg;
+  document.getElementById('body-weight-val').textContent = currentWeightVal.toFixed(1);
+
+  // Disable log button if already logged today
+  const btn = document.getElementById('body-log-btn');
+  const lbl = document.getElementById('body-log-label');
+  if (todayEntry) {
+    btn.disabled = true;
+    btn.textContent = 'Logged today ✓';
+    btn.classList.add('logged');
+    lbl.textContent = `Today: ${todayEntry.kg} kg`;
+  } else {
+    btn.disabled = false;
+    btn.textContent = 'Log weight';
+    btn.classList.remove('logged');
+    lbl.textContent = "Log today's weight";
+  }
+
+  updateBodyStats(log);
+  renderBodyGraph(log);
+  renderBodyHistory(log);
+}
+
+function stepWeight(delta) {
+  currentWeightVal = Math.round((currentWeightVal + delta * 0.1) * 10) / 10;
+  if (currentWeightVal < 30) currentWeightVal = 30;
+  document.getElementById('body-weight-val').textContent = currentWeightVal.toFixed(1);
+}
+
+function logWeight() {
+  const log = loadWeightLog();
+  const today = new Date().toISOString().split('T')[0];
+  const existing = log.findIndex(e => e.date === today);
+  if (existing >= 0) log[existing].kg = currentWeightVal;
+  else log.push({ date: today, kg: currentWeightVal });
+  log.sort((a,b) => a.date.localeCompare(b.date));
+  saveWeightLog(log);
+  initBodyPage();
+}
+
+function updateBodyStats(log) {
+  if (!log.length) return;
+  const start   = log[0].kg;
+  const current = log[log.length-1].kg;
+  const change  = current - start;
+  document.getElementById('bstat-start').textContent   = start.toFixed(1);
+  document.getElementById('bstat-current').textContent = current.toFixed(1);
+  const changeEl = document.getElementById('bstat-change');
+  changeEl.textContent = (change >= 0 ? '+' : '') + change.toFixed(1);
+  changeEl.style.color = change === 0 ? 'var(--text)' : change > 0 ? 'var(--warn)' : 'var(--d4)';
+
+  // 7-day trend: compare avg of last 7 days vs avg of 7 days before that
+  const recent = log.slice(-7).map(e=>e.kg);
+  const prev   = log.slice(-14,-7).map(e=>e.kg);
+  const trendEl = document.getElementById('bstat-trend');
+  if (recent.length >= 2) {
+    const avgRecent = recent.reduce((a,b)=>a+b,0)/recent.length;
+    const avgPrev   = prev.length ? prev.reduce((a,b)=>a+b,0)/prev.length : recent[0];
+    const trend = avgRecent - avgPrev;
+    trendEl.textContent = (trend >= 0 ? '+' : '') + trend.toFixed(1);
+    trendEl.style.color = trend === 0 ? 'var(--text)' : trend > 0 ? 'var(--warn)' : 'var(--d4)';
+  } else {
+    trendEl.textContent = '—';
+  }
+
+  document.getElementById('body-sub').textContent =
+    `${log.length} entr${log.length===1?'y':'ies'} · started ${log[0].date}`;
+}
+
+let bodyChart = null;
+function renderBodyGraph(log) {
+  const cv = document.getElementById('body-chart');
+  if (!cv) return;
+  if (bodyChart) { bodyChart.destroy(); bodyChart = null; }
+
+  if (log.length < 2) {
+    const ctx = cv.getContext('2d');
+    ctx.clearRect(0,0,cv.width,cv.height);
+    ctx.fillStyle = '#8a6050';
+    ctx.font = '13px -apple-system,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Log at least 2 entries to see your graph', cv.width/2, cv.height/2);
+    return;
+  }
+
+  const labels = log.map(e => { const p=e.date.split('-'); return `${p[2]}/${p[1]}`; });
+  const raw    = log.map(e => e.kg);
+
+  // 7-day moving average
+  const mavg = raw.map((_, i) => {
+    const slice = raw.slice(Math.max(0, i-6), i+1);
+    return Math.round((slice.reduce((a,b)=>a+b,0)/slice.length)*10)/10;
+  });
+
+  bodyChart = new Chart(cv, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Weight', data: raw,  borderColor: '#E8162A', backgroundColor: 'rgba(232,22,42,.1)', borderWidth: 1.5, pointBackgroundColor: '#E8162A', pointRadius: 3, fill: true, tension: 0.2 },
+        { label: '7d avg', data: mavg, borderColor: '#F5E6C8', backgroundColor: 'transparent',         borderWidth: 2,   pointRadius: 0, fill: false, tension: 0.4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, labels: { color: '#8a6050', font: { size: 11 }, boxWidth: 14, padding: 12 } },
+        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.raw} kg` } }
+      },
+      scales: {
+        x: { ticks: { color:'#8a6050', font:{size:9}, maxRotation:45 }, grid: { color:'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color:'#8a6050', font:{size:10} }, grid: { color:'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+}
+
+function renderBodyHistory(log) {
+  const el = document.getElementById('body-history');
+  if (!log.length) { el.innerHTML = ''; return; }
+  const recent = [...log].reverse().slice(0, 14);
+  el.innerHTML = `
+    <div class="body-history-label">Recent entries</div>
+    ${recent.map((e,i) => {
+      const prev = recent[i+1];
+      const delta = prev ? e.kg - prev.kg : null;
+      const deltaStr = delta === null ? '' :
+        `<span style="font-size:11px;color:${delta===0?'var(--muted)':delta>0?'var(--warn)':'var(--d4)'}">${delta>0?'+':''}${delta.toFixed(1)}</span>`;
+      const dParts = e.date.split('-');
+      return `<div class="body-history-row">
+        <span class="body-history-date">${dParts[2]}/${dParts[1]}/${dParts[0]}</span>
+        <span class="body-history-kg">${e.kg.toFixed(1)} kg</span>
+        ${deltaStr}
+      </div>`;
+    }).join('')}`;
+}
+
+// ─── PWA ──────────────────────────────────────────────────────────────────────
+let dp;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();dp=e;document.getElementById('install-banner').classList.remove('hidden');});
+document.getElementById('install-btn').addEventListener('click',async()=>{if(!dp)return;dp.prompt();const{outcome}=await dp.userChoice;if(outcome==='accepted')document.getElementById('install-banner').classList.add('hidden');dp=null;});
+window.addEventListener('appinstalled',()=>document.getElementById('install-banner').classList.add('hidden'));
+if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+// ─── SWIPE NAV ────────────────────────────────────────────────────────────────
+const PAGES = ['plan', 'progress', 'body', 'settings'];
+let currentPageIdx = 0;
+
+function switchToPage(name) {
+  const idx = PAGES.indexOf(name);
+  if (idx === -1) return;
+  currentPageIdx = idx;
+  document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelector(`.nav-btn[data-page="${name}"]`).classList.add('active');
+  document.getElementById(`page-${name}`).classList.add('active');
+  if (name === 'progress') renderProgress();
+  if (name === 'settings') loadSettingsUI();
+  if (name === 'body')     initBodyPage();
+}
+
+let swipeStartX = 0, swipeStartY = 0;
+document.addEventListener('touchstart', e => {
+  swipeStartX = e.touches[0].clientX;
+  swipeStartY = e.touches[0].clientY;
+}, { passive: true });
+document.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - swipeStartX;
+  const dy = e.changedTouches[0].clientY - swipeStartY;
+  if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.8) return;
+  if (dx < 0 && currentPageIdx < PAGES.length - 1) switchToPage(PAGES[currentPageIdx + 1]);
+  if (dx > 0 && currentPageIdx > 0) switchToPage(PAGES[currentPageIdx - 1]);
+}, { passive: true });
+
+// ─── SETTINGS FUNCTIONS ───────────────────────────────────────────────────────
+function loadSettingsUI() {
+  const c = loadGHConfig();
+  if (c) {
+    document.getElementById('gh-token').value = c.token || '';
+    document.getElementById('gh-owner').value = c.owner || '';
+    document.getElementById('gh-repo').value  = c.repo  || '';
+  }
+  setGHStatus(ghSyncStatus);
+}
+
+function saveGHSettings() {
+  const token = document.getElementById('gh-token').value.trim();
+  const owner = document.getElementById('gh-owner').value.trim();
+  const repo  = document.getElementById('gh-repo').value.trim();
+  if (!token || !owner || !repo) { alert('Fill in all three fields.'); return; }
+  saveGHConfig({ token, owner, repo });
+  ghPull().then(pulled => {
+    if (pulled) { renderPlan(); renderProgress(); }
+    else ghPush();
+  });
+}
+
+function exportJSON() {
+  const payload = { log: loadLog(), targets: loadTgts(), exported: new Date().toISOString() };
+  const b = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const u = URL.createObjectURL(b);
+  const a = document.createElement('a');
+  a.href = u; a.download = `workout-backup-${new Date().toISOString().split('T')[0]}.json`; a.click();
+  URL.revokeObjectURL(u);
+}
+
+function confirmClear() {
+  if (confirm('Delete all local log data? (GitHub copy is unaffected)')) {
+    localStorage.removeItem(LKEY);
+    localStorage.removeItem(TKEY);
+    renderPlan();
+    alert('Local data cleared.');
+  }
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+const DN = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+document.getElementById('today-label').textContent = DN[new Date().getDay()] + ' · ' + new Date().toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+
+async function init() {
+  // Load workout plan from workout.json, fall back to embedded DAYS
+  try {
+    const res = await fetch('./workout.json');
+    if (res.ok) {
+      const plan = await res.json();
+      if (plan.days) window.DAYS = plan.days;
+    }
+  } catch(e) { /* use embedded DAYS */ }
+
+  // Pull from GitHub if configured (merges remote into local)
+  const cfg = loadGHConfig();
+  if (cfg?.token) {
+    setGHStatus('syncing');
+    await ghPull();
+  }
+
+  renderPlan();
+}
+
+document.querySelectorAll('.nav-btn').forEach(b => b.addEventListener('click', () => switchToPage(b.dataset.page)));
+
+init();
+</script>
+</body>
+</html>
