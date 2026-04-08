@@ -11,7 +11,7 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 .page-inner { max-width: 640px; margin: 0 auto; }
 
 /* NAV */
-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; background: rgba(0,0,0,.97); backdrop-filter: blur(20px); border-top: 1px solid var(--border); display: flex; padding-bottom: env(safe-area-inset-bottom); }
+nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; background: #000; border-top: 1px solid var(--border); display: flex; padding-bottom: env(safe-area-inset-bottom); }
 .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 0 8px; border: none; background: none; cursor: pointer; color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; transition: color .15s; }
 .nav-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; }
 .nav-btn.active { color: var(--d1); }
