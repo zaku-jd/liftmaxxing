@@ -1,0 +1,30 @@
+# OS / editor noise
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs
+*.log
+
+# Environment / secrets
+.env
+.env.*
+
+# Dependency / build output (if you later add tooling)
+node_modules/
+dist/
+build/
+.cache/
+.parcel-cache/
+.vite/
+.next/
+out/
+coverage/
+
+# Local tooling / IDE
+.vscode/
+.idea/
+
+# Design assets
+logo.ai
+*.ai

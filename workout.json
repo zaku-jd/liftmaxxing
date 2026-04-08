@@ -129,13 +129,13 @@
               "why": "Replaces floor press + skull crushers. Hits lower chest, anterior delt, all 3 tricep heads."
             },
             {
-              "id": "elev_push",
-              "name": "Elevated Push-ups (paralettes)",
+              "id": "def_push",
+              "name": "Deficit Push-ups (paralettes)",
               "eq": "para",
               "sets": 3,
               "kg": 0,
               "reps": [10, 20],
-              "note": "Hands on paralettes. Lean forward for chest, upright for triceps. Deeper ROM than floor."
+              "note": "Hands on paralettes. Lean forward for chest, upright for triceps. Deep ROM."
             }
           ]
         },
