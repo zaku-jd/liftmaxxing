@@ -1,6 +1,6 @@
 {
-  "name": "Liftmaxx",
-  "short_name": "Liftmaxx",
+  "name": "liftmaxx",
+  "short_name": "liftmaxx",
   "description": "Personal workout plan and progress tracker",
   "id": "./",
   "start_url": "./",

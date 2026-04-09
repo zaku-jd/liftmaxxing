@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Liftmaxx">
-<title>Workout Tracker</title>
+<meta name="apple-mobile-web-app-title" content="liftmaxx">
+<title>liftmaxx</title>
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -15,7 +15,7 @@
 
 <div id="page-plan" class="page active">
   <div class="page-header">
-    <div class="page-title">Workout</div>
+    <div class="page-title">liftmaxx</div>
     <div class="page-sub" id="today-label">Loading...</div>
   </div>
   <div class="page-inner">
@@ -23,12 +23,7 @@
     <p>Add to home screen — works offline, no browser bar.</p>
     <button class="install-btn" id="install-btn">Install</button>
   </div>
-  <div class="day-tabs">
-    <button class="day-tab active" data-day="0">Day 1 · Pull + Legs</button>
-    <button class="day-tab" data-day="1">Day 2 · Push</button>
-    <button class="day-tab" data-day="2">Day 3 · Arms + Chest</button>
-    <button class="day-tab" data-day="3">Day 4 · Back + Shoulders</button>
-  </div>
+  <div class="day-tabs" id="day-tabs"></div>
   <div id="day-panels"></div>
   </div>
 </div>
@@ -55,39 +50,15 @@
 <div id="page-settings" class="page">
   <div class="page-header">
     <div class="page-title">Settings</div>
-    <div class="page-sub">GitHub sync · data · about</div>
+    <div class="page-sub">Data · about</div>
   </div>
-  <div class="page-inner" style="padding: 16px 20px;">
-
-    <div class="settings-section">
-      <div class="settings-heading">GitHub sync</div>
-      <p class="settings-desc">Your log is saved automatically to a <code>log.json</code> file in any GitHub repo you choose. Never lose data, readable from any device.</p>
-      <div class="settings-row">
-        <label class="settings-label">Status</label>
-        <span id="gh-status" style="font-size:13px;color:var(--muted)">Not connected</span>
-      </div>
-      <div class="settings-field">
-        <label class="settings-label">Personal access token</label>
-        <input class="settings-input" id="gh-token" type="password" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off" spellcheck="false">
-        <div class="settings-hint">GitHub → Settings → Developer settings → Personal access tokens → Fine-grained → Contents: read &amp; write on your repo</div>
-      </div>
-      <div class="settings-field">
-        <label class="settings-label">GitHub username</label>
-        <input class="settings-input" id="gh-owner" type="text" placeholder="yourusername" autocomplete="off" spellcheck="false">
-      </div>
-      <div class="settings-field">
-        <label class="settings-label">Repo name</label>
-        <input class="settings-input" id="gh-repo" type="text" placeholder="workout" autocomplete="off" spellcheck="false">
-      </div>
-      <div style="display:flex;gap:8px;margin-top:4px;">
-        <button class="settings-btn primary" onclick="saveGHSettings()">Save &amp; connect</button>
-        <button class="settings-btn" onclick="ghPull().then(()=>{ renderPlan(); renderProgress(); })">Pull from GitHub</button>
-      </div>
-    </div>
+  <div class="page-inner page-inner-pad">
 
     <div class="settings-section">
       <div class="settings-heading">Data</div>
       <button class="settings-btn" onclick="exportJSON()">Export backup (JSON)</button>
+      <button class="settings-btn" onclick="pickImport()">Import backup (JSON)</button>
+      <input class="settings-input" id="import-file" type="file" accept="application/json,.json" style="display:none">
       <button class="settings-btn danger" onclick="confirmClear()">Clear all local data</button>
     </div>
 
@@ -104,7 +75,7 @@
     <div class="page-title">Body</div>
     <div class="page-sub" id="body-sub">Track your weight over time</div>
   </div>
-  <div class="page-inner" style="padding: 16px 20px;">
+  <div class="page-inner page-inner-pad">
 
     <div class="body-stats-grid">
       <div class="stat-card"><div class="stat-val" id="bstat-start">—</div><div class="stat-label">Starting</div></div>
@@ -155,7 +126,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 // ─── PLAN ─────────────────────────────────────────────────────────────────────
-const DAYS = [
+const DEFAULT_DAYS = [
   { id:0, name:'Pull + Legs', color:'#4f9cf7', sections:[
     { label:'Back', exercises:[
       { id:'aus_row',     name:'Australian Row',              eq:'para', sets:3, kg:0,    reps:[8,12],  note:'Lie under paralettes, pull chest to bar. Feet flat. Full scapular retraction.', why:'Loads ~30–42 kg bodyweight vs 12.5 kg DB. Your best back exercise.' },
@@ -217,108 +188,72 @@ const DAYS = [
   ]},
 ];
 
+let DAYS = DEFAULT_DAYS;
+let currentDayId = 0;
+
+function rgbaFromHex(hex, alpha) {
+  try {
+    const h = hex.replace('#','').trim();
+    const full = h.length === 3 ? h.split('').map(c=>c+c).join('') : h;
+    const r = parseInt(full.slice(0,2), 16);
+    const g = parseInt(full.slice(2,4), 16);
+    const b = parseInt(full.slice(4,6), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  } catch {
+    return `rgba(255,255,255,${alpha})`;
+  }
+}
+
+function setActiveDay(dayId) {
+  currentDayId = dayId;
+  document.querySelectorAll('.day-tab').forEach(x => x.classList.toggle('active', String(x.dataset.day) === String(dayId)));
+  document.querySelectorAll('.day-panel').forEach(x => x.classList.toggle('active', String(x.dataset.day) === String(dayId)));
+
+  // Update active tab color
+  const day = DAYS.find(d => String(d.id) === String(dayId));
+  if (!day) return;
+  document.querySelectorAll('.day-tab').forEach(btn => {
+    const isActive = btn.classList.contains('active');
+    if (isActive) {
+      btn.style.background = rgbaFromHex(day.color || '#E8162A', 0.16);
+      btn.style.borderColor = rgbaFromHex(day.color || '#E8162A', 0.35);
+      btn.style.color = day.color || 'var(--text)';
+    } else {
+      btn.style.background = '';
+      btn.style.borderColor = '';
+      btn.style.color = '';
+    }
+  });
+}
+
+function renderDayTabs() {
+  const wrap = document.getElementById('day-tabs');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  DAYS.forEach((day, idx) => {
+    const b = document.createElement('button');
+    b.className = 'day-tab';
+    b.dataset.day = day.id;
+    b.textContent = `Day ${idx + 1} · ${day.name}`;
+    b.addEventListener('click', () => setActiveDay(day.id));
+    wrap.appendChild(b);
+  });
+  // Pick first day if current id not present
+  if (!DAYS.find(d => String(d.id) === String(currentDayId))) currentDayId = DAYS[0]?.id ?? 0;
+  setActiveDay(currentDayId);
+}
+
 // ─── STORAGE ──────────────────────────────────────────────────────────────────
 // Log format: { [exId]: [ { date, sets: [ {kg, reps} ] } ] }
 // localStorage is always the live working copy.
-// GitHub is synced after every write (debounced 3s) and read on startup.
 
 const LKEY = 'wl_v3';
 const TKEY = 'wt_v1';
-const GHKEY = 'gh_config'; // { token, owner, repo }
 
 const loadLog  = () => { try { return JSON.parse(localStorage.getItem(LKEY))||{}; } catch { return {}; } };
-const saveLog  = l  => { localStorage.setItem(LKEY, JSON.stringify(l)); ghSyncDebounced(); };
+const saveLog  = l  => { localStorage.setItem(LKEY, JSON.stringify(l)); };
 const loadTgts = () => { try { return JSON.parse(localStorage.getItem(TKEY))||{}; } catch { return {}; } };
-const saveTgts = t  => { localStorage.setItem(TKEY, JSON.stringify(t)); ghSyncDebounced(); };
-const loadGHConfig = () => { try { return JSON.parse(localStorage.getItem(GHKEY))||null; } catch { return null; } };
-const saveGHConfig = c => localStorage.setItem(GHKEY, JSON.stringify(c));
-
-// ─── GITHUB SYNC ──────────────────────────────────────────────────────────────
-let ghSyncTimer = null;
-let ghSyncStatus = 'idle'; // idle | syncing | ok | error
-
-function ghSyncDebounced() {
-  clearTimeout(ghSyncTimer);
-  ghSyncTimer = setTimeout(ghPush, 3000);
-}
-
-function ghApiBase() {
-  const c = loadGHConfig();
-  if (!c?.token || !c?.owner || !c?.repo) return null;
-  return { base: `https://api.github.com/repos/${c.owner}/${c.repo}`, token: c.token };
-}
-
-async function ghPush() {
-  const api = ghApiBase();
-  if (!api) return;
-  setGHStatus('syncing');
-  try {
-    const payload = {
-      log: loadLog(),
-      targets: loadTgts(),
-      weight: loadWeightLog(),
-      updated: new Date().toISOString()
-    };
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
-    // Get current SHA (needed to update existing file)
-    let sha = null;
-    const getRes = await fetch(`${api.base}/contents/log.json`, {
-      headers: { Authorization: `Bearer ${api.token}`, Accept: 'application/vnd.github+json' }
-    });
-    if (getRes.ok) { const d = await getRes.json(); sha = d.sha; }
-
-    const body = { message: `log update ${new Date().toISOString().split('T')[0]}`, content };
-    if (sha) body.sha = sha;
-    const putRes = await fetch(`${api.base}/contents/log.json`, {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${api.token}`, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    if (!putRes.ok) throw new Error(putRes.status);
-    setGHStatus('ok');
-  } catch(e) {
-    console.warn('GitHub sync failed:', e);
-    setGHStatus('error');
-  }
-}
-
-async function ghPull() {
-  const api = ghApiBase();
-  if (!api) return false;
-  setGHStatus('syncing');
-  try {
-    const res = await fetch(`${api.base}/contents/log.json`, {
-      headers: { Authorization: `Bearer ${api.token}`, Accept: 'application/vnd.github+json' }
-    });
-    if (!res.ok) { setGHStatus('ok'); return false; } // file doesn't exist yet, that's fine
-    const d = await res.json();
-    const payload = JSON.parse(decodeURIComponent(escape(atob(d.content.replace(/\n/g,'')))));
-    if (payload.log)     localStorage.setItem(LKEY, JSON.stringify(payload.log));
-    if (payload.targets) localStorage.setItem(TKEY, JSON.stringify(payload.targets));
-    if (payload.weight)  localStorage.setItem(WKEY, JSON.stringify(payload.weight));
-    setGHStatus('ok');
-    return true;
-  } catch(e) {
-    console.warn('GitHub pull failed:', e);
-    setGHStatus('error');
-    return false;
-  }
-}
-
-function setGHStatus(s) {
-  ghSyncStatus = s;
-  const el = document.getElementById('gh-status');
-  if (!el) return;
-  const states = {
-    idle:    { text: 'Not connected', color: 'var(--muted)' },
-    syncing: { text: 'Syncing…',      color: 'var(--warn)' },
-    ok:      { text: 'Synced ✓',      color: 'var(--d4)' },
-    error:   { text: 'Sync failed',   color: 'var(--d1)' },
-  };
-  const st = states[s] || states.idle;
-  el.textContent = st.text;
-  el.style.color = st.color;
-}
+const saveTgts = t  => { localStorage.setItem(TKEY, JSON.stringify(t)); };
 
 function getTarget(ex) {
   const ov = loadTgts()[ex.id];
@@ -417,7 +352,7 @@ function renderPlan() {
   wrap.innerHTML = '';
   DAYS.forEach(day => {
     const panel = document.createElement('div');
-    panel.className = 'day-panel' + (day.id===0?' active':'');
+    panel.className = 'day-panel' + (String(day.id)===String(currentDayId)?' active':'');
     panel.dataset.day = day.id;
     day.sections.forEach(sec => {
       const lbl = document.createElement('div');
@@ -739,18 +674,11 @@ document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click',()=>
   switchToPage(b.dataset.page);
 }));
 
-document.querySelectorAll('.day-tab').forEach(t=>t.addEventListener('click',()=>{
-  document.querySelectorAll('.day-tab').forEach(x=>x.classList.remove('active'));
-  document.querySelectorAll('.day-panel').forEach(x=>x.classList.remove('active'));
-  t.classList.add('active');
-  document.querySelector(`.day-panel[data-day="${t.dataset.day}"]`).classList.add('active');
-}));
-
 // ─── WEIGHT TRACKING ─────────────────────────────────────────────────────────
 const WKEY = 'weight_log_v1'; // [ { date: 'YYYY-MM-DD', kg: 75.5 } ]
 
 const loadWeightLog = () => { try { return JSON.parse(localStorage.getItem(WKEY))||[]; } catch { return []; } };
-const saveWeightLog = l => { localStorage.setItem(WKEY, JSON.stringify(l)); ghSyncDebounced(); };
+const saveWeightLog = l => { localStorage.setItem(WKEY, JSON.stringify(l)); };
 
 let currentWeightVal = 75.0;
 
@@ -918,7 +846,6 @@ function switchToPage(name) {
   document.querySelector(`.nav-btn[data-page="${name}"]`).classList.add('active');
   document.getElementById(`page-${name}`).classList.add('active');
   if (name === 'progress') renderProgress();
-  if (name === 'settings') loadSettingsUI();
   if (name === 'body')     initBodyPage();
 }
 
@@ -936,30 +863,87 @@ document.addEventListener('touchend', e => {
 }, { passive: true });
 
 // ─── SETTINGS FUNCTIONS ───────────────────────────────────────────────────────
-function loadSettingsUI() {
-  const c = loadGHConfig();
-  if (c) {
-    document.getElementById('gh-token').value = c.token || '';
-    document.getElementById('gh-owner').value = c.owner || '';
-    document.getElementById('gh-repo').value  = c.repo  || '';
-  }
-  setGHStatus(ghSyncStatus);
+function pickImport() {
+  const el = document.getElementById('import-file');
+  if (!el) return;
+  el.value = '';
+  el.click();
 }
 
-function saveGHSettings() {
-  const token = document.getElementById('gh-token').value.trim();
-  const owner = document.getElementById('gh-owner').value.trim();
-  const repo  = document.getElementById('gh-repo').value.trim();
-  if (!token || !owner || !repo) { alert('Fill in all three fields.'); return; }
-  saveGHConfig({ token, owner, repo });
-  ghPull().then(pulled => {
-    if (pulled) { renderPlan(); renderProgress(); }
-    else ghPush();
-  });
+function isObj(x) { return x && typeof x === 'object' && !Array.isArray(x); }
+
+function mergeLogs(base, incoming) {
+  const out = structuredClone(base || {});
+  for (const [exId, sessions] of Object.entries(incoming || {})) {
+    if (!Array.isArray(sessions)) continue;
+    if (!Array.isArray(out[exId])) out[exId] = [];
+    const seen = new Set(out[exId].map(s => `${s?.date}|${JSON.stringify(s?.sets || [])}`));
+    for (const s of sessions) {
+      const date = s?.date;
+      const sets = Array.isArray(s?.sets) ? s.sets.map(x => ({ kg: x.kg, reps: x.reps })) : [];
+      if (!date || !sets.length) continue;
+      const key = `${date}|${JSON.stringify(sets)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out[exId].push({ date, sets });
+    }
+    out[exId].sort((a,b) => String(a.date).localeCompare(String(b.date)));
+  }
+  return out;
 }
+
+function mergeWeights(baseArr, incomingArr) {
+  const base = Array.isArray(baseArr) ? baseArr : [];
+  const inc  = Array.isArray(incomingArr) ? incomingArr : [];
+  const byDate = new Map();
+  for (const e of base) if (e?.date) byDate.set(e.date, { date: e.date, kg: e.kg });
+  for (const e of inc)  if (e?.date) byDate.set(e.date, { date: e.date, kg: e.kg });
+  return [...byDate.values()].filter(e => typeof e.kg === 'number').sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+async function importBackupFile(file) {
+  const txt = await file.text();
+  const payload = JSON.parse(txt);
+
+  const importedLog = isObj(payload?.log) ? payload.log : null;
+  const importedTargets = isObj(payload?.targets) ? payload.targets : null;
+  const importedWeight =
+    Array.isArray(payload?.weight) ? payload.weight :
+    Array.isArray(payload?.weights) ? payload.weights :
+    null;
+
+  if (!importedLog && !importedTargets && !importedWeight) {
+    throw new Error('Invalid backup JSON (missing log/targets/weight).');
+  }
+
+  const nextLog = importedLog ? mergeLogs(loadLog(), importedLog) : loadLog();
+  const nextTargets = importedTargets ? { ...loadTgts(), ...importedTargets } : loadTgts();
+  const nextWeight = importedWeight ? mergeWeights(loadWeightLog(), importedWeight) : loadWeightLog();
+
+  saveLog(nextLog);
+  saveTgts(nextTargets);
+  saveWeightLog(nextWeight);
+
+  renderDayTabs();
+  renderPlan();
+  renderProgress();
+  if (document.getElementById('page-body')?.classList.contains('active')) initBodyPage();
+}
+
+document.getElementById('import-file')?.addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  try {
+    await importBackupFile(file);
+    alert('Imported backup ✓');
+  } catch (err) {
+    console.warn('Import failed:', err);
+    alert('Import failed. Make sure you selected a valid Liftmaxx backup JSON file.');
+  }
+});
 
 function exportJSON() {
-  const payload = { log: loadLog(), targets: loadTgts(), exported: new Date().toISOString() };
+  const payload = { log: loadLog(), targets: loadTgts(), weight: loadWeightLog(), exported: new Date().toISOString() };
   const b = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const u = URL.createObjectURL(b);
   const a = document.createElement('a');
@@ -968,9 +952,10 @@ function exportJSON() {
 }
 
 function confirmClear() {
-  if (confirm('Delete all local log data? (GitHub copy is unaffected)')) {
+  if (confirm('Delete all local data (workout log + targets + bodyweight)?')) {
     localStorage.removeItem(LKEY);
     localStorage.removeItem(TKEY);
+    localStorage.removeItem(WKEY);
     renderPlan();
     alert('Local data cleared.');
   }
@@ -981,22 +966,16 @@ const DN = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturda
 document.getElementById('today-label').textContent = DN[new Date().getDay()] + ' · ' + new Date().toLocaleDateString('en-GB', {day:'numeric', month:'short'});
 
 async function init() {
-  // Load workout plan from workout.json, fall back to embedded DAYS
+  // Load workout plan from workout.json, fall back to embedded plan
   try {
     const res = await fetch('./workout.json');
     if (res.ok) {
       const plan = await res.json();
-      if (plan.days) window.DAYS = plan.days;
+      if (Array.isArray(plan.days) && plan.days.length) DAYS = plan.days;
     }
   } catch(e) { /* use embedded DAYS */ }
 
-  // Pull from GitHub if configured (merges remote into local)
-  const cfg = loadGHConfig();
-  if (cfg?.token) {
-    setGHStatus('syncing');
-    await ghPull();
-  }
-
+  renderDayTabs();
   renderPlan();
 }
 
